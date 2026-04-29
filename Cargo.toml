@@ -1,0 +1,41 @@
+# Cargo manifest for Ergo Blackout.
+# This file defines the Rust package, build settings, and external crates.
+
+[package]
+# Crate and binary name. Keep it lowercase with underscores for Rust tooling.
+name = "ergo_blackout"
+
+# Early project version. Bump this when the command contract becomes stable.
+version = "0.1.0"
+
+# Rust 2021 is stable and widely supported across current toolchains.
+edition = "2021"
+
+# Short project description for cargo metadata and future publishing.
+description = "Verifiable network isolation tool with platform-specific backends."
+
+# The project is still private/early-stage. Set a license before publishing.
+publish = false
+
+[dependencies]
+# Command-line parser for commands like:
+#   ergo_blackout blackout
+#   ergo_blackout status
+#   ergo_blackout restore
+#   ergo_blackout dry-run
+clap = { version = "4.5", features = ["derive"] }
+
+# Structured errors for application-level failures.
+thiserror = "1.0"
+
+# Flexible error reports for the CLI boundary.
+anyhow = "1.0"
+
+# Serialization support for future status reports, dry-run plans, and snapshots.
+serde = { version = "1.0", features = ["derive"] }
+
+# Human-readable JSON output for status/dry-run if needed.
+serde_json = "1.0"
+
+[dev-dependencies]
+# Snapshot-style assertions can be added later when command output stabilizes.
