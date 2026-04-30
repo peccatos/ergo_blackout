@@ -1,21 +1,17 @@
 use anyhow::Result;
 
-use crate::plan::{BlackoutPlan, RestorePlan};
+use crate::{
+    plan::{BlackoutPlan, BlackoutSpec, RestorePlan},
+    status::VerificationReport,
+};
 
 pub mod linux_nft;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BackendStatus {
-    pub supported: bool,
-    pub active: bool,
-    pub detail: String,
-}
 
 pub trait BlackoutBackend {
     fn name(&self) -> &'static str;
     fn ensure_supported(&self) -> Result<()>;
-    fn status(&self) -> Result<BackendStatus>;
-    fn blackout_plan(&self) -> BlackoutPlan;
+    fn verify(&self, spec: &BlackoutSpec) -> Result<VerificationReport>;
+    fn blackout_plan(&self, spec: BlackoutSpec) -> BlackoutPlan;
     fn apply_blackout(&self, plan: &BlackoutPlan) -> Result<()>;
     fn restore_plan(&self) -> RestorePlan;
     fn restore(&self, plan: &RestorePlan) -> Result<()>;
@@ -27,9 +23,12 @@ pub mod fake {
 
     use anyhow::Result;
 
-    use crate::plan::{BlackoutPlan, RestorePlan};
+    use crate::{
+        plan::{BlackoutMode, BlackoutPlan, BlackoutSpec, RestorePlan},
+        status::{BlackoutStatus, VerificationReport},
+    };
 
-    use super::{BackendStatus, BlackoutBackend};
+    use super::BlackoutBackend;
 
     #[derive(Debug, Default)]
     pub struct RecordingBackend {
@@ -52,20 +51,26 @@ pub mod fake {
             Ok(())
         }
 
-        fn status(&self) -> Result<BackendStatus> {
-            self.calls.borrow_mut().push("status");
-            Ok(BackendStatus {
-                supported: true,
-                active: false,
-                detail: "fake backend".to_string(),
+        fn verify(&self, _spec: &BlackoutSpec) -> Result<VerificationReport> {
+            self.calls.borrow_mut().push("verify");
+            Ok(VerificationReport {
+                status: BlackoutStatus::Inactive,
+                checks: Vec::new(),
             })
         }
 
-        fn blackout_plan(&self) -> BlackoutPlan {
+        fn blackout_plan(&self, spec: BlackoutSpec) -> BlackoutPlan {
             self.calls.borrow_mut().push("blackout_plan");
             BlackoutPlan {
+                spec: BlackoutSpec {
+                    mode: spec.mode,
+                    allowlist: spec.allowlist,
+                },
                 steps: vec!["fake blackout plan".to_string()],
-                nft_ruleset: "table inet ergo_blackout {}".to_string(),
+                nft_ruleset: format!(
+                    "table inet ergo_blackout {{ # mode {} }}",
+                    BlackoutMode::Soft
+                ),
             }
         }
 
